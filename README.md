@@ -5,6 +5,7 @@ Welcome to your new dbt project!
 Current primary reference:
 - [FIFO 1](https://www.codeproject.com/Questions/1161244/How-to-query-data-using-the-FIFO-method-for-invent)
 - [FIFO 2](https://stackoverflow.com/questions/43831286/postgres-fifo-query-calculate-profit-margin)
+- [FIFO 3](https://stackoverflow.com/questions/11204136/first-in-first-out-fifo-inventory-costing)
 
 Try running the following commands:
 - dbt run
