@@ -2,7 +2,7 @@ SELECT order_id, name, time_created, qty_sold
     -- 5
     --, 
     , case 
-        when qty_sold = 0 then NULL
+        when qty_sold = 0 then -1
         else round((cum_sold_cost - coalesce(lag(cum_sold_cost) over w, 0))/qty_sold, 2)
       end fifo_price    
     , qty_bought, prev_bought, total_cost
@@ -39,4 +39,5 @@ FROM (
         AND tneg.name = tpos.name
     ) t
 WINDOW w AS (PARTITION BY name ORDER BY time_created)
+GROUP BY name
 ORDER BY time_created;
