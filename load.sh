@@ -15,4 +15,4 @@ psql -d orangesky -c "CREATE TABLE orangesky.dbt_orangesky.portfolio (
 \"time_created\" bigint
 );"
 
-psql -d orangesky -c "\copy portfolio FROM '/Users/laurencechen/clo/orangesky/seeds/portfolio.csv' HEADER CSV;"
+psql -d orangesky -c "\copy portfolio FROM './seeds/portfolio.csv' HEADER CSV;"
