@@ -39,4 +39,3 @@ FROM (
         AND tneg.name = tpos.name
     ) t
 WINDOW w AS (PARTITION BY name ORDER BY time_created)
-ORDER BY time_created;
