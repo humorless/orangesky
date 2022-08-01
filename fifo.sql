@@ -1,50 +1,41 @@
-with step1 as (
-  select
-    *,
-    coalesce(
-      sum(
-        case
-          when side = 'sell' then volume_executed
-          else 0
-        end
-      ) over(
-        order by
-          time_created 
-        rows between unbounded preceding
-             and 1 preceding
-      ),
-      0
-    ) previous_sold
-  from
-    portfolio
-  order by
-    time_created
-),
-step2_3 AS (
-  SELECT
-    *,
-    (previous_running_stock - previous_sold) AS open_stock,
-    (previous_running_stock - previous_sold - t1.volume_executed) AS close_stock,
-    ROW_NUMBER() over(PARTITION BY t1.time_created order by (case when previous_running_stock - previous_sold - t1.volume_executed < 0  then null else 0 - t1.time_created end) desc) rnk
-  FROM
-    step1 AS t1,
-    LATERAL (
-      SELECT 
-        time_created AS batch_order, cost AS batch_cost, volume_executed AS batch_qty,
-        coalesce(
-        sum(volume_executed) 
-        over( 
-          order by time_created 
-          rows unbounded preceding
-        ),
-          0
-        ) previous_running_stock
+SELECT order_id, name, time_created, qty_sold
+    -- 5
+    --, 
+    , case 
+        when qty_sold = 0 then NULL
+        else round((cum_sold_cost - coalesce(lag(cum_sold_cost) over w, 0))/qty_sold, 2)
+      end fifo_price    
+    , qty_bought, prev_bought, total_cost
+    , prev_total_cost
+    , cum_sold_cost
+    , coalesce(lag(cum_sold_cost) over w, 0) as prev_cum_sold_cost
+FROM (
+    SELECT order_id, tneg.name, time_created, qty_sold, tpos.qty_bought, prev_bought, total_cost, prev_total_cost
+        -- 4
+        , round(prev_total_cost + ((tneg.cum_sold - tpos.prev_bought)/(tpos.qty_bought - tpos.prev_bought))*(total_cost-prev_total_cost), 2) as cum_sold_cost 
+    FROM (
+      SELECT order_id, name, time_created, volume_executed as qty_sold
+          , sum(volume_executed) over w as cum_sold
+      FROM portfolio
+      WHERE side = 'sell'
+      WINDOW w AS (PARTITION BY name ORDER BY time_created)
+    -- 1
+    ) tneg 
+    LEFT JOIN (
+      SELECT name
+          , sum(volume_executed) over w as qty_bought
+          , coalesce(sum(volume_executed) over prevw, 0) as prev_bought
+          , volume_executed * price as cost                              
+          , sum(volume_executed * price) over w as total_cost
+          , coalesce(sum(volume_executed * price) over prevw, 0) as prev_total_cost
       FROM portfolio
       WHERE side = 'buy'
-      AND time_created < t1.time_created  
-    ) AS t2
-  WHERE t1.side = 'sell' ) 
-SELECT * 
-FROM step2_3
- WHERE (open_stock > 0) AND
- (close_stock < 0 OR rnk = 1);
+      WINDOW w AS (PARTITION BY name ORDER BY time_created)
+          , prevw AS (PARTITION BY name ORDER BY time_created ROWS BETWEEN unbounded preceding AND 1 preceding)
+    -- 2
+    ) tpos 
+    -- 3
+    ON tneg.cum_sold BETWEEN tpos.prev_bought AND tpos.qty_bought 
+        AND tneg.name = tpos.name
+    ) t
+WINDOW w AS (PARTITION BY name ORDER BY time_created)

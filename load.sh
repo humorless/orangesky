@@ -9,9 +9,9 @@ psql -d orangesky -c "CREATE TABLE orangesky.dbt_orangesky.portfolio (
 \"order_id\" bigint,
 \"name\" text,
 \"side\" text,
-\"price\" float8,
-\"cost\" float8,
-\"volume_executed\" bigint,
+\"price\" numeric,
+\"cost\" numeric,
+\"volume_executed\" numeric,
 \"time_created\" bigint
 );"
 
